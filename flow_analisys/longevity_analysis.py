@@ -1,4 +1,5 @@
 import pprint
+import re
 
 def def_use_block(blocks):
   for _, block in blocks.items():
@@ -13,40 +14,35 @@ def def_use_block(blocks):
           prev_expressions = instruction[2:]
           block['DEF'].add(possible_var_defined)
         
-        block['USE'].update(var for var in possible_vars_used if var not in block['DEF'])
+        block['USE'].update({var for var in possible_vars_used if var not in block['DEF']})
+      else:
+        instruction = re.sub(r'[A-Z|if|return|goto|0-9]', '', instruction)
+        block['USE'].update({var for var in instruction if var.isalpha() and var not in block['DEF']})
 
   return blocks
 
-def analysis_in(blocks, id):
-  out = blocks[id]['OUT']
-  
-  for elem in blocks[id]['DEF']:
-    out.discard(elem)
-    
-  return blocks[id]['USE'].union(out)
-
 def analysis_out(blocks, id):
-  success_in = set()
+  successors_in = set()
   
-  for succ in blocks[id]['successors']:
-    if succ != 0:
-      success_in.update(blocks[succ]['IN'])
-  
-  return success_in
+  if 0 not in blocks[id]['successors']:
+    for succ in blocks[id]['successors']:
+      successors_in.update(blocks[succ]['IN'])
+
+  return successors_in
 
 def longevity_analysis(blocks):
   changes = True
 
   while changes:
-    prevs_in, prevs_out = [blocks[i]['IN'] for i in blocks], [blocks[i]['OUT'] for i in blocks]
+    prevs_in, prevs_out = [blocks[i]['IN'].copy() for i in blocks], [blocks[i]['OUT'].copy() for i in blocks]
     
     for id in reversed(blocks):
       blocks[id]['OUT'].update(analysis_out(blocks, id))
-      blocks[id]['IN'].update(analysis_in(blocks, id))
+      blocks[id]['IN'].update(blocks[id]['USE'].union(set([x for x in blocks[id]['OUT'] if x not in blocks[id]['DEF']])))
       
     if prevs_in == [blocks[i]['IN'] for i in blocks] and prevs_out == [blocks[i]['OUT'] for i in blocks]:
       changes = False
-    
+
   return blocks
 
 def create_block(num_block, instructions, predecessors, successors):
@@ -66,7 +62,7 @@ def create_block(num_block, instructions, predecessors, successors):
 
 def get_entry():
   blocks = {}
-  predecessors = None
+  predecessors = []
 
   while True:
     num_block, num_inst = [int(x) for x in input().split(' ')]
@@ -80,6 +76,10 @@ def get_entry():
       
     blocks.update(create_block(num_block, instructions, predecessors, successors))
     predecessors = [num_block]
+    
+    for succ in successors:
+      if succ <= num_block and succ != 0:
+        blocks[succ]['predecessors'].append(num_block)
 
     if successors == [0]:
       break
@@ -92,50 +92,3 @@ if __name__ == '__main__':
   blocks = longevity_analysis(blocks)
   pp = pprint.PrettyPrinter(indent=2)
   pp.pprint(blocks)
-
-''' Entrada
-1 2
-a= a+c
-b= 4-a
-2
-2 1
-b=20*c
-3
-3 2
-d = a+b
-b = 0
-0
-
-Bloco |  DEF |  USE
-1     |  b   |  a, c
-2     |  b   |  c
-3     |  d   |  a, b
-
-Bloco |  IN  |  OUT
-1     | a, c | a, c 
-2     | a, c | a, b
-3     | a, b | {}
-
-1 1
-a=0
-2
-2 4
-b=a+1
-c=c+b
-a=b+2
-if a < N goto 2
-3 2
-3 1
-return c
-0
-
-Bloco |  DEF |  USE
-1     |      |  
-2     |      | 
-3     |      |  
-
-Bloco |  IN  |  OUT
-1     |      | 
-2     |      | 
-3     |      | 
-'''
