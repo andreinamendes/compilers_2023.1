@@ -6,7 +6,7 @@ Andreina Mendes - 485306
 import json
 
 # Global variables to increase the specified states for every conective processing
-index_states = 0
+index_states = 1
 index_or = 0
 index_and = 0
 index_asterisk = 0
@@ -48,7 +48,6 @@ kleene_lock()
 """
 
 def kleene_lock(AFN1, just_kleene):
-    AFN = {}
     transitions = {}
 
     if just_kleene:
@@ -86,9 +85,7 @@ def kleene_lock(AFN1, just_kleene):
 
     states = [initial_state] + AFN1['states'] + [accept_state]
 
-    AFN = create_AFN(states, transitions, initial_state, {accept_state:''})
-
-    return AFN
+    return create_AFN(states, transitions, initial_state, {accept_state:''})
 
 """
 union()
@@ -100,8 +97,6 @@ union()
 """
 
 def union(AFN1, AFN2):
-    AFN = {}
-
     global index_or
     
     transitions = {}
@@ -127,11 +122,9 @@ def union(AFN1, AFN2):
 
     states = [initial_state] + AFN1['states'] + AFN2['states'] + [accept_state]
 
-    AFN = create_AFN(states, transitions, initial_state, {accept_state:''})
-
     index_or += 2
 
-    return AFN
+    return create_AFN(states, transitions, initial_state, {accept_state:''})
 
 """
 concat()
@@ -161,11 +154,10 @@ def concat(AFN1, AFN2):
 
     new_states = AFN1['states'] + [c_state] + AFN2['states']
 
-    AFN = create_AFN(new_states, transitions, AFN1['initial_state'], AFN2['accept_states'])
-
     index_and += 1
 
-    return AFN
+    return create_AFN(new_states, transitions, AFN1['initial_state'], AFN2['accept_states'])
+
 
 """
 make_operation()
@@ -222,7 +214,7 @@ def prepare_list(er):
             initial_state = f'q{index_states}'
             accept_state = f'q{index_states+1}'
             
-            transition[initial_state] ={}
+            transition[initial_state] = {}
             transition[initial_state][symbol] = []
             transition[initial_state][symbol].append(accept_state)
             states = [initial_state] + [accept_state]
@@ -275,7 +267,7 @@ join_afns()
 """
 
 def join_afns(afns):
-    initial_state = 'root'
+    initial_state = 'q0'
     accept_states = {}
     states = [initial_state]
     
@@ -310,8 +302,6 @@ if __name__ == "__main__":
         accept_state = list(afn['accept_states'].keys())[0]
         afn['accept_states'][accept_state] = token
         afns.append(afn)
-
-    final_afn = join_afns(afns)
-
+        
     with open("afn.json", "w") as file:
-        json.dump(final_afn, file, indent=4)
+        json.dump(join_afns(afns), file, indent=4)

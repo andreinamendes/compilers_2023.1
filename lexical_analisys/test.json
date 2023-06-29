@@ -1,0 +1,27 @@
+{
+    "states": [
+        "q1",
+        "q2",
+        "q3",
+        "q4",
+        "q5",
+        "q6",
+        "q7",
+        "q8"
+    ],
+    "transitions": {
+        "q1": {
+            "i": "q2"
+        },
+        "q2": {
+            "n": "q3"
+        },
+        "q3": {
+            "t": "q4"
+        }
+    },
+    "initial_state": "q1",
+    "accept_states": {
+        "q4": "INT"
+    }
+}
