@@ -1,11 +1,30 @@
 import pprint
 
-def gen_kill_block(blocks, definitions):
+def gen_kill_block(blocks):
   for _, block in blocks.items():
-    block['GEN'] = set(block['instructions'].keys())
+    for key, expression in block['instructions'].items():
+      aux = block['instructions'].copy()
+      variables = [x for x in expression if x.isalpha()]
+      print(block['instructions'].keys())
     
-    for gen in block['GEN']:
-      block['KILL'].update(set([x for x in definitions[block['instructions'][gen][0]] if x != gen]))
+      for x in block['instructions']:
+        if x != key:
+          aux.pop(x)
+        else:
+          aux.pop(x)
+          break
+
+      verify_gen = True
+
+      for _, ex in aux.items():
+        for var in variables:
+          if var in ex:
+            verify_gen = False
+
+      if verify_gen:
+        block['GEN'].update({key})
+      else:
+        block['KILL'].update({key})
 
   return blocks
 
@@ -25,7 +44,7 @@ def analysis_in(blocks, id):
     
   return pre_in
 
-def reaching_definitions(blocks):
+def available_expressions(blocks):
   changes = True
 
   while changes:
@@ -56,10 +75,9 @@ def create_block(num_block, instructions, predecessors, successors):
   return block
 
 def get_entry():
-  blocks = {}
-  predecessors = []
-  index_d = 1
-  definitions = dict()
+  blocks, predecessors = {}, []
+  index_e, index_d = 1, 1
+  expressions, definitions = dict(), dict()
   num_blocks = int(input())
 
   for _ in range(num_blocks):
@@ -69,16 +87,28 @@ def get_entry():
     
     for _ in range(num_inst):
       instruction = input().replace(' ', '')
+      id_e = f'e{index_e}'
       id_d = f'd{index_d}'
       
+      expression = instruction[2:]
+      verify_expression = False
+      
+      for x in expression:
+        if x.isalpha():
+          verify_expression = True
+      
+      if verify_expression:
+        expressions.update({id_e: expression})
+        instructions.update({id_e:expression})
+        
       if instruction[0] not in definitions.keys():
         definitions.update({instruction[0]: [id_d]})
       else:
         definitions[instruction[0]].append(id_d)
-        
-      index_d += 1
-      instructions.update({id_d:instruction})
       
+      index_e += 1
+      index_d += 1
+
     successors = input()
     
     if len(successors) > 1:
@@ -93,12 +123,13 @@ def get_entry():
       if succ != 0 and succ <= num_block:
         blocks[succ]['predecessors'].append(num_block)
         
-  return blocks, definitions
+  return blocks, expressions, definitions
 
 if __name__ == '__main__':
-  blocks, definitions = get_entry()
-  blocks = gen_kill_block(blocks, definitions)
-  blocks = reaching_definitions(blocks)
+  blocks, expressions, definitions = get_entry()
+  blocks = gen_kill_block(blocks)
+  # blocks = available_expressions(blocks)
   pp = pprint.PrettyPrinter(indent=2)
+  pp.pprint(expressions)
   pp.pprint(definitions)
   pp.pprint(blocks)
