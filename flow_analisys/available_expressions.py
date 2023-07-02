@@ -1,31 +1,53 @@
 import pprint
 
-def gen_kill_block(blocks):
+def gen_block(blocks):
   for _, block in blocks.items():
     for key, expression in block['instructions'].items():
       aux = block['instructions'].copy()
       variables = [x for x in expression if x.isalpha()]
-      print(block['instructions'].keys())
     
       for x in block['instructions']:
-        if x != key:
-          aux.pop(x)
-        else:
-          aux.pop(x)
+        aux.pop(x)
+        if x == key:
           break
 
       verify_gen = True
 
-      for _, ex in aux.items():
+      for _, ex in aux.items(): 
         for var in variables:
           if var in ex:
             verify_gen = False
 
       if verify_gen:
         block['GEN'].update({key})
-      else:
-        block['KILL'].update({key})
+        
+  return blocks
 
+def kill_block(blocks):
+  for _, block in blocks.items():
+    for key, expression in block['instructions'].items():
+      copy = block['instructions'].copy()
+      variables = [x for x in expression if x.isalpha()]
+      
+      for x in block['instructions']:
+        copy.pop(x)
+        if x == key:
+          break
+      
+      verify_kill = False
+      aux = copy.copy()
+      
+      for k, ex in copy.items():
+        aux.pop(k)
+        if ex[0] in variables:
+          verify_kill = True
+          for x in aux:
+            if aux[x] == ex[2:]:
+              verify_kill = False
+                
+      if verify_kill:
+        block['KILL'].update({key})
+        
   return blocks
 
 def analysis_out(blocks, id):
@@ -99,7 +121,7 @@ def get_entry():
       
       if verify_expression:
         expressions.update({id_e: expression})
-        instructions.update({id_e:expression})
+        instructions.update({id_e:instruction})
         
       if instruction[0] not in definitions.keys():
         definitions.update({instruction[0]: [id_d]})
@@ -127,7 +149,8 @@ def get_entry():
 
 if __name__ == '__main__':
   blocks, expressions, definitions = get_entry()
-  blocks = gen_kill_block(blocks)
+  blocks = gen_block(blocks)
+  blocks = kill_block(blocks)
   # blocks = available_expressions(blocks)
   pp = pprint.PrettyPrinter(indent=2)
   pp.pprint(expressions)
